@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mortgage Dominator</title>
+  <style>
+    /* Base styles for dark theme */
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .calculator-container {
+      max-width: 800px;
+      margin: 50px auto;
+      background-color: #1e1e1e;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .input-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: space-between;
+    }
+    .input-group label {
+      flex: 1 1 45%;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .input-group input {
+      flex: 1 1 45%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #333;
+      color: #fff;
+      font-size: 14px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      background-color: #0066cc;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #005bb5;
+    }
+    #results {
+      background-color: #1e1e1e;
+      border-top: 2px solid #444;
+      margin-top: 30px;
+      padding-top: 20px;
+      font-size: 14px;
+    }
+    #results p {
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+    /* Proposal customization section */
+    #printProposalContainer {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      border-radius: 5px;
+      display: none;
+    }
+    #printProposalContainer label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    #printProposalContainer input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #333;
+      color: #fff;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator-container">
+    <h1>Loan Insights</h1>
+    <h2>Current Mortgage</h2>
+    <div class="input-group">
+      <!-- Changed type to text so commas can be displayed -->
+      <label for="currentLoanAmount">Loan Amount:</label>
+      <input type="text" id="currentLoanAmount" value="0" 
+             onfocus="removeCommas(this)" onblur="formatNumber(this)">
+      <label for="currentInterestRate">Interest Rate (%):</label>
+      <input type="number" id="currentInterestRate" value="0">
+      <label for="currentLoanTerm">Loan Term (years):</label>
+      <input type="number" id="currentLoanTerm" value="0">
+      <label for="currentLoanStartDate">Start Date (Month/Year):</label>
+      <input type="month" id="currentLoanStartDate">
+    </div>
+
+    <h2>New Mortgage</h2>
+    <div class="input-group">
+      <!-- Changed type to text so commas can be displayed -->
+      <label for="newLoanAmount">Loan Amount:</label>
+      <input type="text" id="newLoanAmount" value="0" 
+             onfocus="removeCommas(this)" onblur="formatNumber(this)">
+      <label for="newInterestRate">Interest Rate (%):</label>
+      <input type="number" id="newInterestRate" value="0">
+      <label for="newLoanTerm">Loan Term (years):</label>
+      <input type="number" id="newLoanTerm" value="0">
+      <!-- Changed type to text so commas can be displayed -->
+      <label for="propertyTax">Annual Property Tax:</label>
+      <input type="text" id="propertyTax" value="0" 
+             onfocus="removeCommas(this)" onblur="formatNumber(this)">
+      <!-- Changed type to text so commas can be displayed -->
+      <label for="insurance">Annual Insurance:</label>
+      <input type="text" id="insurance" value="0" 
+             onfocus="removeCommas(this)" onblur="formatNumber(this)">
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+
+    <!-- This div will show the calculation results -->
+    <div id="results"></div>
+
+    <!-- Proposal customization and print button (hidden until results are shown) -->
+    <div id="printProposalContainer">
+      <label for="proposalTitle">Proposal Title:</label>
+      <input type="text" id="proposalTitle" value="Your Proposal">
+      
+      <label for="profilePicture">Profile Picture:</label>
+      <input type="file" id="profilePicture" accept="image/*" onchange="handleProfileImageUpload(event)">
+      
+      <label for="providedBy">Provided by:</label>
+      <input type="text" id="providedBy" placeholder="Ryan Dez">
+      
+      <label for="companyName">Company Name:</label>
+      <input type="text" id="companyName" placeholder="Straight Deal Mortgage">
+      
+      <button onclick="printProposal()">Print Proposal</button>
+    </div>
+  </div>
+
+  <script>
+    // Global variable to store the profile image as a data URL.
+    var profileImageData = "";
+
+    // Remove commas when the user focuses on the input field for easier editing.
+    function removeCommas(input) {
+      input.value = input.value.replace(/,/g, '');
+    }
+
+    // Format the input number with commas on blur.
+    function formatNumber(input) {
+      let val = input.value.replace(/,/g, '');
+      if (val === '' || isNaN(val)) return;
+      input.value = Number(val).toLocaleString();
+    }
+
+    // Handle the file input for the profile picture.
+    function handleProfileImageUpload(event) {
+      var file = event.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          profileImageData = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function calculate() {
+      // Get input values (current mortgage)
+      const currentLoanAmount = parseFloat(document.getElementById("currentLoanAmount").value.replace(/,/g, '')) || 0;
+      const currentInterestRate = parseFloat(document.getElementById("currentInterestRate").value) / 100 / 12 || 0;
+      const currentLoanTerm = parseFloat(document.getElementById("currentLoanTerm").value) * 12 || 0;
+      const currentLoanStartDate = document.getElementById("currentLoanStartDate").value;
+
+      // Get input values (new mortgage)
+      const newLoanAmount = parseFloat(document.getElementById("newLoanAmount").value.replace(/,/g, '')) || 0;
+      const newInterestRate = parseFloat(document.getElementById("newInterestRate").value) / 100 / 12 || 0;
+      const newLoanTerm = parseFloat(document.getElementById("newLoanTerm").value) * 12 || 0;
+      const propertyTax = (parseFloat(document.getElementById("propertyTax").value.replace(/,/g, '')) || 0) / 12;
+      const insurance = (parseFloat(document.getElementById("insurance").value.replace(/,/g, '')) || 0) / 12;
+
+      // Calculate monthly payments (current)
+      const currentMonthlyPayment = calculateMonthlyPayment(currentLoanAmount, currentInterestRate, currentLoanTerm);
+      const currentTotalCost = currentMonthlyPayment * currentLoanTerm;
+
+      // Calculate monthly payments (new)
+      const newMonthlyPayment = calculateMonthlyPayment(newLoanAmount, newInterestRate, newLoanTerm);
+      const newTotalMonthlyPayment = newMonthlyPayment + propertyTax + insurance;
+      const newTotalCost = newTotalMonthlyPayment * newLoanTerm;
+
+      // Lifetime interest savings
+      const lifetimeInterestSavings = currentTotalCost - newTotalCost;
+
+      // Estimated monthly savings
+      const estimatedMonthlySavings = currentMonthlyPayment - newMonthlyPayment;
+
+      // Accelerated payoff example (with same payment)
+      let acceleratedLoanTerm = 0;
+      let remainingBalance = newLoanAmount;
+      const acceleratedMonthlyPayment = newTotalMonthlyPayment;
+      while (remainingBalance > 0 && acceleratedLoanTerm < 1000 * newLoanTerm) {  // safeguard loop
+        const interest = remainingBalance * newInterestRate;
+        let principalPayment = acceleratedMonthlyPayment - interest;
+        if (principalPayment < 0) {
+          principalPayment = 0;
+        }
+        remainingBalance -= principalPayment;
+        acceleratedLoanTerm++;
+        if (acceleratedLoanTerm > 10000) break; // break out if something goes wrong
+      }
+
+      const yearsSaved = ((currentLoanTerm) - acceleratedLoanTerm) / 12;
+      const acceleratedTotalCost = acceleratedMonthlyPayment * acceleratedLoanTerm;
+      const acceleratedLifetimeInterestSavings = currentTotalCost - acceleratedTotalCost;
+
+      // Display results with formatted numbers
+      // Remove the "<h2>Results</h2>" header from the printed content.
+      let resultsContent = document.getElementById("results").innerHTML;
+      resultsContent = resultsContent.replace(/<h2>Results<\/h2>/, "");
+      resultsContent = `
+        <h3>Current Mortgage</h3>
+        <p><strong>Loan Amount:</strong> $${currentLoanAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <p><strong>Monthly Payment:</strong> $${currentMonthlyPayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <p><strong>Start Date:</strong> ${currentLoanStartDate || "Not provided"}</p>
+        <h3>New Mortgage</h3>
+        <p><strong>Loan Amount:</strong> $${newLoanAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <p><strong>Monthly Payment:</strong> $${newMonthlyPayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <p><strong>Total Monthly Payment (with taxes & insurance):</strong> $${newTotalMonthlyPayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <p><strong>Estimated Monthly Savings:</strong> $${estimatedMonthlySavings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <p><strong>Lifetime Interest Savings:</strong> $${lifetimeInterestSavings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        <h3>Accelerated Payoff Example</h3>
+        <p>By keeping your total monthly payment at <strong>$${acceleratedMonthlyPayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>, you can pay off your loan approximately <strong>${yearsSaved.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> years faster than your current loan.</p>
+        <p><strong>Accelerated Payoff Term:</strong> ${acceleratedLoanTerm} months (~${(acceleratedLoanTerm / 12).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} years)</p>
+        <p><strong>Additional Lifetime Interest Savings (with accelerated payoff):</strong> $${acceleratedLifetimeInterestSavings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+      `;
+      document.getElementById("results").innerHTML = resultsContent;
+
+      // Reveal the Print Proposal section now that results are available.
+      document.getElementById("printProposalContainer").style.display = "block";
+    }
+
+    // Function to calculate the monthly payment using the loan formula.
+    function calculateMonthlyPayment(loanAmount, interestRate, loanTerm) {
+      if (isNaN(loanAmount) || isNaN(interestRate) || isNaN(loanTerm) ||
+          loanAmount <= 0 || interestRate <= 0 || loanTerm <= 0) {
+        return 0; // Return 0 if input is invalid.
+      }
+      const numerator = loanAmount * interestRate * Math.pow(1 + interestRate, loanTerm);
+      const denominator = Math.pow(1 + interestRate, loanTerm) - 1;
+      return numerator / denominator;
+    }
+
+    // Function to generate a printable proposal view and trigger the print dialog.
+    function printProposal() {
+      var proposalTitle = document.getElementById('proposalTitle').value || 'Proposal';
+      var providedBy = document.getElementById('providedBy').value || '';
+      var companyName = document.getElementById('companyName').value || '';
+      var providedByText = providedBy;
+      if (companyName.trim() !== "") {
+        providedByText += " - " + companyName;
+      }
+      
+      // Use the updated resultsContent without the "Results" header.
+      var resultsContent = document.getElementById('results').innerHTML;
+      
+      // Include the profile image if one was uploaded.
+      var profileImageHTML = "";
+      if (profileImageData && profileImageData !== "") {
+        profileImageHTML = `<img src="${profileImageData}" alt="Profile Picture" style="display:block; margin:0 auto 20px; max-width:150px; border-radius:50%; border:3px solid #0066cc;">`;
+      }
+
+      var printWindow = window.open('', '', 'width=800,height=600');
+      printWindow.document.write(`
+      <html>
+      <head>
+        <title>${proposalTitle}</title>
+        <style>
+          body { 
+            background-color: #f8f8f8; 
+            color: #333; 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 40px; 
+          }
+          .proposal-container { 
+            border: 1px solid #ccc; 
+            padding: 20px; 
+            background-color: #fff; 
+            border-radius: 8px;
+          }
+          .proposal-header { 
+            margin-bottom: 20px; 
+            text-align: center; 
+            background: #0066cc; 
+            color: #fff; 
+            padding: 10px; 
+            border-radius: 5px;
+          }
+          .provided-by {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #555;
+          }
+          h2, h3 {
+            color: #0066cc;
+          }
+          p {
+            line-height: 1.5;
+            margin: 10px 0;
+          }
+        </style>
+      </head>
+      <body>
+         <div class="proposal-container">
+           <div class="proposal-header">
+              <h1>${proposalTitle}</h1>
+           </div>
+           ${profileImageHTML}
+           <div class="provided-by">
+             Provided by: ${providedByText}
+           </div>
+           ${resultsContent}
+         </div>
+      </body>
+      </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  </script>
+</body>
+</html>
